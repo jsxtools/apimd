@@ -1,0 +1,40 @@
+{
+  "name": "apimd",
+  "version": "0.1.0",
+  "description": "Write APIs in Markdown and use them as mocks.",
+  "author": "Jonathan Neal <jonathantneal@hotmail.com>",
+  "license": "CC0-1.0",
+  "repository": "jsxtools/apimd",
+  "homepage": "https://github.com/jsxtools/apimd#readme",
+  "bugs": "https://github.com/jsxtools/apimd/issues",
+  "main": "index.js",
+  "files": [
+    "index.js",
+    "middleware.js",
+    "parse.js",
+    "rewired.js"
+  ],
+  "scripts": {
+    "test": "eslint *.js"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "dependencies": {
+    "markdown-ast": "^0.2.1",
+    "parse-yaml": "^0.1.0"
+  },
+  "eslintConfig": {
+    "env": {
+      "browser": true,
+      "es6": true,
+      "node": true
+    },
+    "extends": [
+      "eslint:recommended"
+    ]
+  },
+  "devDependencies": {
+    "eslint": "^6.6.0"
+  }
+}
