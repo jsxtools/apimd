@@ -1,5 +1,6 @@
 const { parseAsYaml } = require('parse-yaml');
 const mdast = require('markdown-ast');
+const path = require('path');
 
 /** return an object with other objects assigned to it */
 exports.assign = Object.assign;
@@ -36,3 +37,20 @@ exports.parseAsJson = JSON.parse;
 
 /** return an object parsed from a YAML string */
 exports.parseAsYaml = parseAsYaml;
+
+/** return an object of apimdConfig options from package.json */
+exports.getPackageOpts = pathToPackageJson => {
+	pathToPackageJson = pathToPackageJson || path.join(process.cwd(), 'package.json');
+
+	let pkg = Object.create(null);
+
+	try {
+		pkg = require(pathToPackageJson);
+	} catch (error) {
+		// do nothing and continue
+	}
+
+	const apimdConfig = Object.assign(Object.create(null), pkg.apimd, pkg.apimdConfig);
+
+	return apimdConfig;
+};

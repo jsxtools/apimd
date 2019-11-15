@@ -149,18 +149,59 @@ parse(MARKDOWN_STRING)
 ## Usage with Express
 
 ```js
+// server.js
 const express = require('express')
 const apimd = require('apimd/middleware')
 
 app.use(apimd(/* options */))
 ```
 
+## Usage with Rescripts
+
+```js
+// .rescriptsrc.js
+module.exports = [
+  ['apimd/rescript']
+]
+```
+
 ## Usage with Create React App Rewired
 
 ```js
+// config-overrides.js
 const apimd = require('apimd/rewired')
 
 module.exports = apimd(module.exports, /* options */)
+```
+
+## Options
+
+The following fields may be configured:
+
+```json
+{
+  "fallbackBody": {},
+  "fallbackHeaders": {},
+  "fallbackStatus": 401,
+  "jsonReplacer": null,
+  "jsonSpace": "  ",
+  "live": false,
+  "src": "api.md"
+}
+```
+
+Note: In the rescript and rewired versions, `src` is `src/api.md`.
+
+### Configuration with package.json
+
+The **rescript** and **rewired** versions of **apimd** may be configured from `package.json`:
+
+```json
+{
+  "apimd": {
+    "live": true
+  }
+}
 ```
 
 [apimd]: https://github.com/jsxtools/apimd

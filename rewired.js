@@ -1,6 +1,7 @@
 const {
 	assign,
 	create,
+	getPackageOpts,
 	isFunction,
 } = require('./util');
 const createMiddleware = require('./middleware');
@@ -25,7 +26,7 @@ const rewired = (exports, opts) => {
 	exports = Object(exports);
 
 	// middleware options, with pre-assign options
-	opts = create(defaultOpts, opts);
+	opts = create(defaultOpts, getPackageOpts(), opts);
 
 	/** @type {Object} apimd middleware */
 	const middleware = createMiddleware(opts);
