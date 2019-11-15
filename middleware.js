@@ -1,13 +1,6 @@
 const fs = require('fs');
 const parseAsApimd = require('./parse');
-const {
-	asString,
-	create,
-	has,
-	isNullish,
-	isObject,
-	parseAsJson,
-} = require('./util');
+const { asString, create, isFunction, isNullish, isObject, parseAsJson } = require('./util');
 
 /* constants
 /* ========================================================================== */
@@ -25,114 +18,83 @@ const defaultOpts = {
 /* middleware methods
 /* ========================================================================== */
 
-/** return a body as a string */
+/** returns a body as a string */
 const getBody = (body, jsonReplacer, jsonSpace) => isObject(body)
 	? JSON.stringify(body, jsonReplacer, jsonSpace)
 : asString(body);
 
-/** return an apimd collection from a string */
-const readApimdFile = src => parseAsApimd(fs.readFileSync(src, 'utf8'));
+/** returns an apimd collection from a string */
+const readApimdFile = src => {
+	try {
+		return parseAsApimd(fs.readFileSync(src, 'utf8'));
+	} catch (error) {
+		return null;
+	}
+};
 
-/** return a function that creates and returns apimd middleware */
+/** returns a function that creates and returns apimd middleware */
 const createMiddleware = opts => {
 	opts = create(defaultOpts, opts);
 
-	let api = null;
+	let all = null;
 
 	const middleware = (req, res, next) => {
 		if (opts.live) {
-			try {
-				api = readApimdFile(opts.src);
-			} catch (error) {
-				// do nothing and continue
-			}
+			all = readApimdFile(opts.src);
 		}
 
-		const { headers, method, url } = Object(req);
-		let { body } = Object(req);
+		if (!all) {
+			next();
 
-		const hasMatchingApi = isObject(api) && has(api, url) && has(api[url], method);
+			return;
+		}
 
-		if (hasMatchingApi) {
-			const hasResponse = api[url][method].some(entry => {
-				const hasMatchingRequestHeaders = Object.entries(entry.request.headers).every(
-					([ name, value ]) => name in headers && headers[name] === value
-				);
+		let { body, headers, method, on, url } = Object(req);
 
-				if (hasMatchingRequestHeaders) {
-					const shouldValidateRequestBody = method === 'POST' && entry.request.body;
+		const isPostWithoutBody = method === 'POST' && isNullish(body) && isFunction(on);
 
-					if (shouldValidateRequestBody) {
-						if (isNullish(body)) {
-							body = '';
+		if (isPostWithoutBody) {
+			body = '';
 
-							req.on('data', chunk => {
-								body += chunk.toString();
-							});
-
-							req.on('end', onPostEnd);
-						} else {
-							onPostEnd(body);
-						}
-					} else {
-						onPass();
-					}
-				}
-
-				return hasMatchingRequestHeaders;
-
-				function onPostEnd() {
-					try {
-						body = parseAsJson(body);
-					} catch (error) {
-						// do nothing and continue
-					}
-
-					const shouldCompareRequestBodies = isObject(body) && isObject(entry.request.body);
-
-					if (shouldCompareRequestBodies) {
-						const hasMatchingRequestBody = Object.entries(entry.request.body).every(
-							([ name, value]) => has(body, name) && body[name] === value
-						);
-
-						if (hasMatchingRequestBody) {
-							onPass();
-						} else {
-							onFail();
-						}
-					} else if (body === entry.request.body) {
-						onPass();
-					} else {
-						onFail();
-					}
-				}
-
-				function onPass() {
-					res.status(entry.response.status).set(entry.response.headers).end(
-						getBody(entry.response.body, opts.jsonReplacer, opts.jsonSpace)
-					);
-				}
+			on.call(req, 'data', chunk => {
+				body += chunk.toString();
 			});
 
-			if (!hasResponse) {
-				onFail();
-			}
+			on.call(req, 'end', () => {
+				try {
+					body = parseAsJson(body);
+				} catch (error) {
+					// do nothing and continue
+				}
+
+				onEnd();
+			});
 		} else {
-			next();
+			onEnd();
 		}
 
-		function onFail() {
-			res.status(opts.fallbackStatus).set(opts.fallbackHeaders).end(
-				getBody(opts.fallbackBody, opts.jsonReplacer, opts.jsonSpace)
-			);
+		function onEnd() {
+			const hasEndpoint = all.someByRequest({ url });
+
+			if (hasEndpoint) {
+				const endpoint = all.findByRequest({ method, url, headers, body });
+
+				if (endpoint) {
+					res.status(endpoint.response.status).set(endpoint.response.headers).end(
+						getBody(endpoint.response.body, opts.jsonReplacer, opts.jsonSpace)
+					);
+				} else {
+					res.status(opts.fallbackStatus).set(opts.fallbackHeaders).end(
+						getBody(opts.fallbackBody, opts.jsonReplacer, opts.jsonSpace)
+					);
+				}
+			} else {
+				next();
+			}
 		}
 	};
 
-	try {
-		api = readApimdFile(opts.src);
-	} catch (error) {
-		// do nothing and continue
-	}
+	all = readApimdFile(opts.src);
 
 	return middleware;
 };

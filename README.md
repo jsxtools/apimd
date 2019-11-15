@@ -9,126 +9,147 @@
 `````markdown
 ## GET /api/site
 
+White label site branding and navigation? I have a bad feeling about this.
+
 ```yaml
 branding:
-  label: "My Site"
-  url: "/mysite.svg"
+  title: "Fortune Wookie"
+  imageUrl: "/logo.svg"
 navigation:
-  label: "My Site"
+  title: "Site"
   items:
-  - label: "Home"
-    url: "/"
-  - label: "Accounts"
-    url: "/accounts"
-  - label: "About"
-    url: "/about"
+    - title: "Home"
+      pageUrl: "/"
+    - title: "Darth Later"
+      pageUrl: "/going-out"
+    - title: "Ellie Vader"
+      pageUrl: "/going-up"
+```
+
+## POST /api/login
+
+### Request
+
+It's an older login, server, but it checks out.
+
+```yaml
+username: "han@benslightsaber.ouch"
+password: "j0nes"
+```
+
+### Response
+
+We're fine. We're all fine here, now, thank you.
+
+```yaml
+token: "THX1138"
+user:
+- givenName: "Indiana"
+- familyName: "Solo"
+```
+
+### Response 401
+
+I find your lack of authentication disturbing.
+
+```yaml
+error: "Missing {username,password} request body"
+```
+
+## GET /api/is-logged-in
+
+### Request Headers
+
+```yaml
+x-session-id: "THX1138"
+```
+
+### Response Body
+
+Do...
+
+```yaml
+success: true
+```
+
+### Response Body
+
+Or do not...
+
+```yaml
+success: false
 ```
 `````
 
-A `GET` request to `/api/site` will return the following json:
+Based on the example, a `GET` request to `/api/site` returns the following json:
 
 ```json
 {
   "branding": {
-    "label": "My Site",
-    "imageURL": "/mysite.svg"
+    "title": "Fortune Wookie",
+    "imageUrl": "/logo.svg"
   },
   "navigation": {
-    "label": "My Site",
+    "title": "Site",
     "items": [
       {
-        "label": "Home",
-        "url": "/"
+        "title": "Home",
+        "pageUrl": "/"
       },
       {
-        "label": "Accounts",
-        "url": "/accounts"
+        "title": "Darth Later",
+        "pageUrl": "/going-out"
       },
       {
-        "label": "About",
-        "url": "/about"
+        "title": "Ellie Vader",
+        "pageUrl": "/going-up"
       }
     ]
   }
 }
 ```
 
-APIs written in Markdown can specify multiple endpoints in the same file:
-
-``````markdown
-## GET /api/one
-
-```yaml
-payload: "one"
-```
-
-## GET /api/two
-
-```yaml
-payload: "two"
-```
-``````
-
-APIs written in Markdown can also qualify endpoints with requests.
-
-`````markdown
-## POST /api/login
-
-### Request
-
-```yaml
-username: "test"
-password: "test"
-```
-
-### Response
-
-```yaml
-givenName: "Test"
-sessionId: 1138
-```
-`````
-
-A `POST` request to `/api/login` will return a `401` with the following json:
-
-```json
-{}
-```
-
-However, a `POST` request with a body of `{"username":"test","password":"test"}` will return a `200` with the following json:
+A `POST` request to `/api/login` returns the following `401` json:
 
 ```json
 {
-  "givenName": "Test",
-  "sessionId": 1138
+  "error": "Missing {username,password} request body"
 }
 ```
 
-APIs written in Markdown can qualify requests by headers as well.
+However, adding a request body of `{"username":"han@benslightsaber.ouch","password":"j0nes"}` returns the following json:
 
-`````markdown
-## POST /api/isLoggedIn
-
-### Request Headers
-
-```yaml
-x-session-id: "1138"
+```json
+{
+  "token": "THX1138",
+  "user": [
+    {
+      "givenName": "Indiana"
+    },
+    {
+      "familyName": "Solo"
+    }
+  ]
+}
 ```
 
-### Response
+Also, a `POST` request to `/api/is-logged-in` returns the following json:
 
-```yaml
-success: true
+```json
+{
+  "success": false
+}
 ```
-`````
 
-A `POST` request with a `x-session-id` header of `1138` will return a `200` with the following json:
+While adding a `x-session-id` header of `THX1138` returns the following json:
 
 ```json
 {
   "success": true
 }
 ```
+
+Have fun!
 
 ---
 
@@ -167,16 +188,20 @@ module.exports = [
 
 ## Usage with Create React App Rewired
 
+Add **apimd** to `config-overrides.js` in your React app directory:
+
 ```js
 // config-overrides.js
 const apimd = require('apimd/rewired')
 
-module.exports = apimd(module.exports, /* options */)
+module.exports = {
+  devServer: apimd(/* options [, function devServer(configFunction) {}] */)
+}
 ```
 
 ## Options
 
-The following fields may be configured:
+The following default options may be configured:
 
 ```json
 {
@@ -190,16 +215,16 @@ The following fields may be configured:
 }
 ```
 
-Note: In the rescript and rewired versions, `src` is `src/api.md`.
+Note: In the rescript and rewired versions, `src` is `"src/api.md"` and `live` is `true`.
 
 ### Configuration with package.json
 
-The **rescript** and **rewired** versions of **apimd** may be configured from `package.json`:
+The **rescript** and **rewired** versions of **apimd** may also be configured from `package.json`:
 
 ```json
 {
   "apimd": {
-    "live": true
+    "live": false
   }
 }
 ```

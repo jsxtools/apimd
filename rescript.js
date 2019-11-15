@@ -1,20 +1,22 @@
-const {
-	create,
-	getPackageOpts,
-	isFunction,
-} = require('./util');
+const { create, getPackageOpts, isFunction } = require('./util');
 const createMiddleware = require('./middleware');
 
 /* constants
 /* ========================================================================== */
 
 const defaultOpts = {
+	live: true,
 	src: 'src/api.md',
 };
 
 /* rescript methods
 /* ========================================================================== */
 
+/**
+* returns an object assigned an apimd-enabled devServer
+* @arg {Object} opts - middleware options
+* @arg {Function} oldDevServer - old devServer function
+*/
 const rescript = {
 	/**
 	* returns an apimd-enabled devFunction function

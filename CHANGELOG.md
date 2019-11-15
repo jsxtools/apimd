@@ -1,5 +1,11 @@
 # Changes to apimd
 
+### 0.3.0 (November 15, 2019)
+
+- Added: Ability to define response status and content type from a header
+- Changed: `live` is default for **rescript** and **rewired** versions
+- Changed: **rewired** version is now set to the `devServer` property
+
 ### 0.2.1 (November 15, 2019)
 
 - Fixed: missing `util.js` in publish

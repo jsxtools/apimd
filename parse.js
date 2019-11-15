@@ -1,50 +1,43 @@
-const {
-	asNumber,
-	asString,
-	create,
-	has,
-	isArray,
-	isObject,
-	parseAsJson,
-	parseAsMarkdown,
-	parseAsYaml,
-} = require('./util');
+const { asNumber, asString, create, has, isArray, isObject, parseAsJson, parseAsMarkdown, parseAsYaml } = require('./util');
+const { Endpoints } = require('./endpoint');
 
 /* constants
 /* ========================================================================== */
 
-const entryMatch = /^(delete|get|head|patch|post|put)\s+([^\s]+)(?:\s+\((\d{3})\))?(?:\s|$)/i;
-const resHeadersMatch = /^res(?:ponse)?(?:\s+head(?:er(?:s)?)?)(?:\s+\((\d{3})\))?(?:\s|$)/i;
-const resContentMatch = /^res(?:ponse)?(?:\s+(?:body|content|json))?(?:\s+\((\d{3})\))?(?:\s|$)/i;
-const reqHeadersMatch = /^req(uest)?(\s+head(er(s)?)?)(\s+|$)/i;
-const reqContentMatch = /^req(uest)?(\s+(content|json))?(\s+|$)/i;
+const endpointMatch = /^(delete|get|head|patch|post|put)\s+([^\s]+)(?:\s+(\d{3}))?(?:\s+\(\s*([^)]+?)\s*\))?(?:\s|$)/i;
+const resHeadersMatch = /^(?:res(?:ponse)?|then)(?:\s+head(?:er(?:s)?)?)(?:\s+(\d{3}))?(?:\s+\(\s*([^)]+?)\s*\))?(?:\s|$)/i;
+const resContentMatch = /^(?:res(?:ponse)?|then)(?:\s+(?:body|content|json))?(?:\s+(\d{3}))?(?:\s+\(\s*([^)]+?)\s*\))?(?:\s|$)/i;
+const reqHeadersMatch = /^(?:req(?:uest)?|if)(?:\s+head(?:er(?:s)?)?)(?:\s+|$)/i;
+const reqContentMatch = /^(?:req(?:uest)?|if)(?:\s+(?:body|content|json))?(?:\s+|$)/i;
 const jsonMatch = /^json(\s|$)/;
 const yamlMatch = /^yaml(\s|$)/;
 
 const defaultStatusCode = 200;
+const defaultContentType = 'application/json; charset=utf-8';
 
-const defaultApiProps = ['response', 'body'];
+const defaultGroup = 'response';
+const defaultField = 'body';
 
 /* markdown-ast methods
 /* ========================================================================== */
 
-/** return whether an item is a code block */
+/** returns whether an item is a code block */
 const isCodeBlock = item => item.type === 'codeBlock';
 
-/** return whether an item is a heading */
+/** returns whether an item is a heading */
 const isHeading = item => item.type === 'title' && item.rank;
 
-/** return whether an item is an entry heading */
-const isEntryHeading = item => isHeading(item) && entryMatch.test(getBlockText(item));
+/** returns whether an item is an endpoint heading */
+const isEndpointHeading = item => isHeading(item) && endpointMatch.test(getBlockText(item));
 
-/** return the block text string from an item */
+/** returns the block text string from an item */
 const getBlockText = item => isArray(item.block) && isObject(item.block[0]) ? asString(item.block[0].text) : '';
 
 /* apimd methods
 /* ========================================================================== */
 
-/** return the next api field and status code from an item, otherwise null */
-const getNextApiTuple = item => {
+/** returns the next api field and status code from an item, otherwise null */
+const getFieldTuple = item => {
 	if (!isHeading(item)) {
 		return null;
 	}
@@ -52,9 +45,15 @@ const getNextApiTuple = item => {
 	const text = getBlockText(item);
 
 	return resHeadersMatch.test(text)
-		? ['response', 'headers', asNumber(text.match(reqHeadersMatch)[5]) || defaultStatusCode]
+		? ['response', 'headers'].concat(
+			asNumber(text.match(resHeadersMatch)[1]) || null,
+			asString(text.match(resHeadersMatch)[2]) || null
+		)
 	: resContentMatch.test(text)
-		? ['response', 'body', asNumber(text.match(resContentMatch)[5]) || defaultStatusCode]
+		? ['response', 'body'].concat(
+			asNumber(text.match(resContentMatch)[1]) || null,
+			asString(text.match(resContentMatch)[2]) || null
+		)
 	: reqHeadersMatch.test(text)
 		? ['request', 'headers']
 	: reqContentMatch.test(text)
@@ -62,44 +61,28 @@ const getNextApiTuple = item => {
 	: null;
 };
 
-/** return a new api entry */
-const createApiEntry = (api, item) => {
-	// get the http method, url, and status code from the entry heading item
-	let [, method, url, status] = getBlockText(item).match(entryMatch);
+/** returns a new api endpoint */
+const createEndpoint = (all, item) => {
+	// get the http method, url, and status code from the heading
+	let [, method, url, status, type] = getBlockText(item).match(endpointMatch);
 
 	method = asString(method).toUpperCase();
 	status = asNumber(status) || defaultStatusCode;
+	type = type || defaultContentType;
 
-	// conditionally create a collection for the url
-	if (!has(api, url)) {
-		api[url] = create();
-	}
-
-	// conditionally create a collection for the url and method
-	if (!has(api[url], method)) {
-		api[url][method] = [];
-	}
-
-	// create a new api entry
-	const apiEntry = create({
-		request: create({
-			headers: create(),
-			body: null,
-		}),
-		response: create({
+	// return the newly created endpoint
+	return all.add({
+		request: {
+			method,
+			url,
 			status,
-			headers: create({
-				'Content-Type': 'application/json; charset=utf-8'
-			}),
-			body: null,
-		}),
+			type
+		},
+		response: {
+			status,
+			'Content-Type': type
+		}
 	});
-
-	// push the new api entry to the collection for the url and method
-	api[url][method].push(apiEntry);
-
-	// return the new api entry
-	return apiEntry;
 };
 
 const parseCodeBlock = item => {
@@ -118,38 +101,64 @@ const parseCodeBlock = item => {
 	return asString(item.code);
 };
 
-/** return an api collection from markdown source */
+/** returns api endpoints from markdown source */
 const parse = source => {
 	const ast = parseAsMarkdown(source);
 
-	const collection = create();
+	const all = new Endpoints();
 
-	let entry, props;
+	let hasWritten = create();
+	let currentGroup = defaultGroup;
+	let currentField = defaultField;
+
+	let endpoint;
 
 	ast.forEach(item => {
-		if (isEntryHeading(item)) {
-			entry = createApiEntry(collection, item);
-			props = defaultApiProps;
-		} else if (entry) {
-			// get the next api field and status code
-			const nextApiTuple = getNextApiTuple(item);
+		if (isEndpointHeading(item)) {
+			endpoint = createEndpoint(all, item);
 
-			if (nextApiTuple) {
-				// conditionally update the entry field to be used by code block
-				props = nextApiTuple.slice(0, 2);
+			currentGroup = defaultGroup;
+			currentField = defaultField;
 
-				if (2 in nextApiTuple) {
-					// conditionally update the entry status code
-					entry.response.status = nextApiTuple[2]
+			hasWritten = create();
+		} else if (endpoint) {
+			// get a tuple of data from a heading item
+			const tuple = getFieldTuple(item);
+
+			if (tuple) {
+				currentGroup = tuple[0];
+				currentField = tuple[1];
+
+				// conditionally create a new endpoint if the group field has already been written
+				if (
+					has(hasWritten, currentGroup) &&
+					has(hasWritten[currentGroup], currentField)
+				) {
+					endpoint = all.clone(endpoint);
+
+					hasWritten = create();
+				}
+
+				hasWritten[currentGroup] = create();
+				hasWritten[currentGroup][currentField] = null;
+
+				if (tuple[2]) {
+					// conditionally update the endpoint status code
+					endpoint.response.status = tuple[2];
+				}
+
+				if (tuple[3]) {
+					// conditionally update the endpoint content type
+					endpoint.response.headers['Content-Type'] = tuple[3];
 				}
 			} else if (isCodeBlock(item)) {
-				// conditionally update the entry field using the code block
-				entry[props[0]][props[1]] = parseCodeBlock(item);
+				// conditionally update the endpoint group field
+				endpoint[currentGroup][currentField] = parseCodeBlock(item);
 			}
 		}
 	});
 
-	return collection;
+	return all;
 };
 
 module.exports = parse;
