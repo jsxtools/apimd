@@ -1,6 +1,6 @@
 {
   "name": "apimd",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "Write APIs in Markdown and use them as mocks.",
   "author": "Jonathan Neal <jonathantneal@hotmail.com>",
   "license": "CC0-1.0",
@@ -13,7 +13,8 @@
     "middleware.js",
     "parse.js",
     "rescript.js",
-    "rewired.js"
+    "rewired.js",
+    "util.js"
   ],
   "scripts": {
     "test": "eslint *.js"
