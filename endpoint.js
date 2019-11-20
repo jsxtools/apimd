@@ -1,4 +1,4 @@
-const { assign, create, has, is, isNullish, isObject, asNumber, asString } = require('./util');
+const { assign, create, has, is, isFunction, isNullish, isObject, asNumber, asString } = require('./util');
 
 class Endpoints extends Array {
 	add(opts) {
@@ -13,12 +13,20 @@ class Endpoints extends Array {
 		return this.add(endpoint.clone());
 	}
 
+	cloneOfURL(endpoint) {
+		return this.add(endpoint.cloneOfURL());
+	}
+
 	findByRequest(request) {
 		return this.find(endpoint => endpoint.matchesRequest(request)) || null;
 	}
 
 	someByRequest(request) {
 		return this.some(endpoint => endpoint.matchesRequest(request));
+	}
+
+	someByURL(url) {
+		return this.some(endpoint => endpoint.matchesURL(url));
 	}
 
 	toJSON() {
@@ -52,6 +60,20 @@ class Endpoint {
 
 	clone() {
 		return new Endpoint(this);
+	}
+
+	cloneOfURL() {
+		return new Endpoint(
+			create(
+				this,
+				{
+					request: create({
+						url: this.request.url
+					}),
+					response: create()
+				}
+			)
+		);
 	}
 
 	matchesRequest(request) {
@@ -91,7 +113,7 @@ class Endpoint {
 		const testReqHeaders = create(testReq.headers);
 		const matchesHeaders = Object.entries(selfReqHeaders).every(
 			([ name, value ]) => (
-				has(testReqHeaders, name) &&
+				has(testReqHeaders, name) ||
 				is(testReqHeaders[name], value)
 			)
 		);
@@ -121,6 +143,15 @@ class Endpoint {
 		}
 
 		return true;
+	}
+
+	matchesURL(testURL) {
+		const thisURL = this.request.url;
+		const isUrlTestable = isFunction(Object(testURL).test);
+
+		return isUrlTestable
+			? testURL.test(thisURL)
+		: thisURL === asString(testURL);
 	}
 
 	toJSON() {

@@ -67,14 +67,14 @@ const createMiddleware = opts => {
 					// do nothing and continue
 				}
 
-				onEnd();
+				onTest();
 			});
 		} else {
-			onEnd();
+			onTest();
 		}
 
-		function onEnd() {
-			const hasEndpoint = all.someByRequest({ url });
+		function onTest() {
+			const hasEndpoint = all.someByURL(url);
 
 			if (hasEndpoint) {
 				const endpoint = all.findByRequest({ method, url, headers, body });

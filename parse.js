@@ -134,7 +134,7 @@ const parse = source => {
 					has(hasWritten, currentGroup) &&
 					has(hasWritten[currentGroup], currentField)
 				) {
-					endpoint = all.clone(endpoint);
+					endpoint = all.cloneOfURL(endpoint);
 
 					hasWritten = create();
 				}

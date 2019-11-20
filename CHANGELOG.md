@@ -1,5 +1,10 @@
 # Changes to apimd
 
+### 0.3.1 (November 20, 2019)
+
+- Fixed: Issue where endpoints would not match URL in middleware
+- Fixed: Issue where endpoint clones would keep too much of their predecessor
+
 ### 0.3.0 (November 15, 2019)
 
 - Added: Ability to define response status and content type from a header

@@ -1,6 +1,6 @@
 {
   "name": "apimd",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "description": "Write APIs in Markdown and use them as mocks.",
   "author": "Jonathan Neal <jonathantneal@hotmail.com>",
   "license": "CC0-1.0",
