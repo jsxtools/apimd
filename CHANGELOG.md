@@ -1,5 +1,9 @@
 # Changes to apimd
 
+### 0.3.2 (November 20, 2019)
+
+- Fixed: Issue where request headers were case sensitive when they should not be
+
 ### 0.3.1 (November 20, 2019)
 
 - Fixed: Issue where endpoints would not match URL in middleware

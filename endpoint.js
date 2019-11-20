@@ -113,8 +113,11 @@ class Endpoint {
 		const testReqHeaders = create(testReq.headers);
 		const matchesHeaders = Object.entries(selfReqHeaders).every(
 			([ name, value ]) => (
-				has(testReqHeaders, name) ||
-				is(testReqHeaders[name], value)
+				has(testReqHeaders, name.toLowerCase()) ||
+				is(
+					asString(testReqHeaders[name.toLowerCase()]),
+					asString(value)
+				)
 			)
 		);
 
