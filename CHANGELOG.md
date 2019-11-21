@@ -1,5 +1,10 @@
 # Changes to apimd
 
+### 0.5.0 (November 21, 2019)
+
+- Added: Support for URL params
+- Fixed: Issue with header request validation
+
 ### 0.4.0 (November 21, 2019)
 
 - Added: Support for looser Yaml and Json code blocks

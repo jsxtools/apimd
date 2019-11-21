@@ -1,9 +1,9 @@
 const { parse: parseAsJson } = require('json-6');
 const { parseAsYaml } = require('parse-yaml');
 const EsmModule = require('esm')(module, { await: true })('module');
+const fetch = require('node-fetch');
 const mdast = require('markdown-ast');
 const path = require('path');
-const fetch = require('node-fetch');
 
 /** returns an object with other objects assigned to it */
 exports.assign = Object.assign;
@@ -46,40 +46,58 @@ exports.has = Function.call.bind(Object.hasOwnProperty);
 exports.parseAsEsm = string => {
 	const esm = new EsmModule();
 
-	try {
-		const hasGlobalFetch = Reflect.has(global, 'fetch');
-		const globalFetch = Reflect.get(global, 'fetch');
-		const jsMatch = /^((c|m)?js|es(6|m)?|javascript|jsm?)(\s|$)/i;
-		const jsonMatch = /^json(5|c|ld)?(\s|$)/i;
-		const yamlMatch = /^ya?ml(\s|$)/i;
+	return function (req, params) {
+		try {
+			const hasGlobalFetch = Reflect.has(global, 'fetch');
+			const globalFetch = Reflect.get(global, 'fetch');
+			const jsMatch = /^((c|m)?js|es(6|m)?|javascript|jsm?)(\s|$)/i;
+			const jsonMatch = /^json(5|c|ld)?(\s|$)/i;
+			const yamlMatch = /^ya?ml(\s|$)/i;
 
-		Reflect.set(global, 'fetch', (input, ...init) => fetch(input, ...init).then(
-			response => typeof Object(init[0]).type === 'string' ?
-				response.text().then(
-					text => jsMatch.test(init[0].type)
-						? exports.parseAsEsm(text)
-					: jsonMatch.test(init[0].type)
-						? exports.parseAsJson(text)
-					: yamlMatch.test(init[0].type)
-						? exports.parseAsYaml(text)
-					: text
-				)
-			: response
-		));
+			Reflect.set(global, 'fetch', (input, ...init) => fetch(input, ...init).then(
+				response => typeof Object(init[0]).type === 'string' ?
+					response.text().then(
+						text => jsMatch.test(init[0].type)
+							? exports.parseAsEsm(text)
+						: jsonMatch.test(init[0].type)
+							? exports.parseAsJson(text)
+						: yamlMatch.test(init[0].type)
+							? exports.parseAsYaml(text)
+						: text
+					)
+				: response
+			));
 
-		esm._compile(string, __filename);
-		esm.loaded = true;
+			if (exports.isObject(req)) {
+				Reflect.set(global, 'request', req);
+			}
 
-		Reflect.set(global, 'fetch', globalFetch);
+			if (exports.isObject(params)) {
+				Reflect.set(global, 'params', params);
+			}
 
-		if (!hasGlobalFetch) {
-			Reflect.deleteProperty(global, 'fetch');
+			esm._compile(string, __filename);
+			esm.loaded = true;
+
+			if (exports.isObject(req)) {
+				Reflect.deleteProperty(global, 'request');
+			}
+
+			if (exports.isObject(params)) {
+				Reflect.deleteProperty(global, 'params');
+			}
+
+			Reflect.set(global, 'fetch', globalFetch);
+
+			if (!hasGlobalFetch) {
+				Reflect.deleteProperty(global, 'fetch');
+			}
+		} catch (error) {
+			// do nothing and continue
 		}
-	} catch (error) {
-		// do nothing and continue
-	}
 
-	return Promise.resolve(esm.exports.default || esm.exports);
+		return Promise.resolve(esm.exports.default || esm.exports);
+	}
 };
 
 /** returns an object parsed from a JSON string */

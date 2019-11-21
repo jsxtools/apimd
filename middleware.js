@@ -80,7 +80,15 @@ const createMiddleware = opts => {
 				const endpoint = all.findByRequest({ method, url, headers, body });
 
 				if (endpoint) {
-					const body = endpoint.response.body;
+					let body = endpoint.response.body;
+					let values = (req.url.match(endpoint.request.url) || []).slice(1);
+					let params = values.reduce((params, value, index) => {
+						params[endpoint.request.urlParams[index]] = value;
+
+						return params;
+					}, create());
+
+					body = isFunction(body) ? body(req, params) : body;
 
 					return isPromise(body)
 						? Promise.resolve(body).then(respond.bind(null, endpoint.response))

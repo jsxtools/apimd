@@ -83,17 +83,20 @@ const getFieldTuple = item => {
 const createEndpoint = (all, item) => {
 	// get the http method, url, and status code from the heading
 	let [, method, url, status, type] = getBlockText(item).match(endpointMatch);
+	let urlParams = [];
 
 	method = asString(method).toUpperCase();
 	status = asNumber(status) || defaultStatusCode;
 	type = type || defaultContentType;
-	url = hasParamMatch.test(url) ? pathToRegexp(url) : url;
+	url = hasParamMatch.test(url) ? pathToRegexp(url, urlParams) : url;
+	urlParams = urlParams.map(urlParam => urlParam.name);
 
 	// return the newly created endpoint
 	return all.add({
 		request: {
 			method,
 			url,
+			urlParams,
 			status,
 			type
 		},

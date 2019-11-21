@@ -1,4 +1,4 @@
-const { assign, create, has, is, isNullish, isObject, asNumber, isRegExp, asString } = require('./util');
+const { assign, create, has, is, isArray, isNullish, isObject, asNumber, isRegExp, asString } = require('./util');
 
 class Endpoints extends Array {
 	add(opts) {
@@ -45,6 +45,7 @@ class Endpoint {
 			request: create({
 				method: isNullish(req.method) ? null : String(req.method).toUpperCase(),
 				url: isNullish(req.url) ? null : isRegExp(req.url) ? req.url : String(req.url),
+				urlParams: isArray(req.urlParams) ? req.urlParams : [],
 				headers: create(req.headers),
 				body: isNullish(req.body) ? null : req.body,
 			}),
@@ -117,7 +118,7 @@ class Endpoint {
 		const testReqHeaders = create(testReq.headers);
 		const matchesHeaders = Object.entries(selfReqHeaders).every(
 			([ name, value ]) => (
-				has(testReqHeaders, name.toLowerCase()) ||
+				has(testReqHeaders, name.toLowerCase()) &&
 				is(
 					asString(testReqHeaders[name.toLowerCase()]),
 					asString(value)
