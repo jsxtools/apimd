@@ -1,9 +1,13 @@
 # Changes to apimd
 
+### 0.5.1 (November 21, 2019)
+
+- Fixed: Issue with request body validation
+
 ### 0.5.0 (November 21, 2019)
 
 - Added: Support for URL params
-- Fixed: Issue with header request validation
+- Fixed: Issue with request header validation
 
 ### 0.4.0 (November 21, 2019)
 

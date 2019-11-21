@@ -1,4 +1,4 @@
-const { assign, create, has, is, isArray, isNullish, isObject, asNumber, isRegExp, asString } = require('./util');
+const { assign, create, has, is, isArray, isNullish, asNumber, isRegExp, asString } = require('./util');
 
 class Endpoints extends Array {
 	add(opts) {
@@ -130,19 +130,16 @@ class Endpoint {
 			return false;
 		}
 
-		// match the endpoint request headers
-		const matchesBody = (
-			isNullish(testReq.body) ||
-			isNullish(selfReq.body) ||
-			(
-				isObject(testReq.body)
-					? Object.entries(Object(selfReq.body)).every(
-						([ name, value ]) => (
-							has(testReq.body, name) &&
-							is(testReq.body[name], value)
-						)
-					)
-				: is(testReq.body, selfReq.body)
+		// match the endpoint request body
+		const selfReqBody = create(selfReq.body);
+		const testReqBody = create(testReq.body);
+		const matchesBody = Object.entries(selfReqBody).every(
+			([ name, value ]) => (
+				has(testReqBody, name) &&
+				is(
+					asString(testReqBody[name]),
+					asString(value)
+				)
 			)
 		);
 
