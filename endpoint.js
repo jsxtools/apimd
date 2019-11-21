@@ -1,4 +1,4 @@
-const { assign, create, has, is, isFunction, isNullish, isObject, asNumber, asString } = require('./util');
+const { assign, create, has, is, isNullish, isObject, asNumber, isRegExp, asString } = require('./util');
 
 class Endpoints extends Array {
 	add(opts) {
@@ -44,7 +44,7 @@ class Endpoint {
 		assign(this, {
 			request: create({
 				method: isNullish(req.method) ? null : String(req.method).toUpperCase(),
-				url: isNullish(req.url) ? null : String(req.url),
+				url: isNullish(req.url) ? null : isRegExp(req.url) ? req.url : String(req.url),
 				headers: create(req.headers),
 				body: isNullish(req.body) ? null : req.body,
 			}),
@@ -98,9 +98,13 @@ class Endpoint {
 		const matchesUrl = (
 			isNullish(testReq.url) ||
 			isNullish(selfReq.url) ||
-			is(
-				asString(testReq.url),
-				asString(selfReq.url)
+			(
+				isRegExp(selfReq.url)
+					? selfReq.url.test(testReq.url)
+				: is(
+					asString(testReq.url),
+					asString(selfReq.url)
+				)
 			)
 		);
 
@@ -150,11 +154,10 @@ class Endpoint {
 
 	matchesURL(testURL) {
 		const thisURL = this.request.url;
-		const isUrlTestable = isFunction(Object(testURL).test);
 
-		return isUrlTestable
-			? testURL.test(thisURL)
-		: thisURL === asString(testURL);
+		return isRegExp(thisURL)
+			? thisURL.test(testURL)
+		: asString(thisURL) === asString(testURL);
 	}
 
 	toJSON() {

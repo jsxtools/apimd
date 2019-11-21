@@ -1,6 +1,6 @@
 const fs = require('fs');
 const parseAsApimd = require('./parse');
-const { asString, create, isFunction, isNullish, isObject, parseAsJson } = require('./util');
+const { asString, create, isFunction, isNullish, isObject, isPromise, parseAsJson } = require('./util');
 
 /* constants
 /* ========================================================================== */
@@ -80,9 +80,11 @@ const createMiddleware = opts => {
 				const endpoint = all.findByRequest({ method, url, headers, body });
 
 				if (endpoint) {
-					res.status(endpoint.response.status).set(endpoint.response.headers).end(
-						getBody(endpoint.response.body, opts.jsonReplacer, opts.jsonSpace)
-					);
+					const body = endpoint.response.body;
+
+					return isPromise(body)
+						? Promise.resolve(body).then(respond.bind(null, endpoint.response))
+					: respond(endpoint.response, body);
 				} else {
 					res.status(opts.fallbackStatus).set(opts.fallbackHeaders).end(
 						getBody(opts.fallbackBody, opts.jsonReplacer, opts.jsonSpace)
@@ -90,6 +92,12 @@ const createMiddleware = opts => {
 				}
 			} else {
 				next();
+			}
+
+			function respond(response, body) {
+				return res.status(response.status).set(response.headers).end(
+					getBody(body, opts.jsonReplacer, opts.jsonSpace)
+				)
 			}
 		}
 	};

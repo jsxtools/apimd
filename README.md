@@ -149,6 +149,22 @@ While adding a `x-session-id` header of `THX1138` returns the following json:
 }
 ```
 
+It is neat how JSON and YAML formats are supported, and JavaScript as well:
+
+```js
+export default fetch(
+  'https://api.openbrewerydb.org/breweries',
+  { type: 'json' }
+).then(
+  breweries => breweries.map(
+    brewery => ({
+      patchedAPI: 'patched',
+      ...brewery
+    })
+  )
+)
+```
+
 Have fun!
 
 ---

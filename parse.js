@@ -1,4 +1,16 @@
-const { asNumber, asString, create, has, isArray, isObject, parseAsJson, parseAsMarkdown, parseAsYaml } = require('./util');
+const {
+	asNumber,
+	asString,
+	create,
+	has,
+	isArray,
+	isObject,
+	parseAsEsm,
+	parseAsJson,
+	parseAsMarkdown,
+	parseAsYaml
+} = require('./util');
+const { pathToRegexp } = require('path-to-regexp');
 const { Endpoints } = require('./endpoint');
 
 /* constants
@@ -9,8 +21,10 @@ const resHeadersMatch = /^(?:res(?:ponse)?|then)(?:\s+head(?:er(?:s)?)?)(?:\s+(\
 const resContentMatch = /^(?:res(?:ponse)?|then)(?:\s+(?:body|content|json))?(?:\s+(\d{3}))?(?:\s+\(\s*([^)]+?)\s*\))?(?:\s|$)/i;
 const reqHeadersMatch = /^(?:req(?:uest)?|if)(?:\s+head(?:er(?:s)?)?)(?:\s+|$)/i;
 const reqContentMatch = /^(?:req(?:uest)?|if)(?:\s+(?:body|content|json))?(?:\s+|$)/i;
-const jsonMatch = /^json(\s|$)/;
-const yamlMatch = /^yaml(\s|$)/;
+const jsMatch = /^((c|m)?js|es(6|m)?|javascript|jsm?)(\s|$)/i;
+const hasParamMatch = /:/;
+const jsonMatch = /^json(5|c|ld)?(\s|$)/i;
+const yamlMatch = /^ya?ml(\s|$)/i;
 
 const defaultStatusCode = 200;
 const defaultContentType = 'application/json; charset=utf-8';
@@ -28,10 +42,14 @@ const isCodeBlock = item => item.type === 'codeBlock';
 const isHeading = item => item.type === 'title' && item.rank;
 
 /** returns whether an item is an endpoint heading */
-const isEndpointHeading = item => isHeading(item) && endpointMatch.test(getBlockText(item));
+const isEndpointHeading = item =>
+	isHeading(item) && endpointMatch.test(getBlockText(item));
 
 /** returns the block text string from an item */
-const getBlockText = item => isArray(item.block) && isObject(item.block[0]) ? asString(item.block[0].text) : '';
+const getBlockText = item =>
+	isArray(item.block) && isObject(item.block[0])
+		? asString(item.block[0].text)
+		: '';
 
 /* apimd methods
 /* ========================================================================== */
@@ -46,19 +64,19 @@ const getFieldTuple = item => {
 
 	return resHeadersMatch.test(text)
 		? ['response', 'headers'].concat(
-			asNumber(text.match(resHeadersMatch)[1]) || null,
-			asString(text.match(resHeadersMatch)[2]) || null
+				asNumber(text.match(resHeadersMatch)[1]) || null,
+				asString(text.match(resHeadersMatch)[2]) || null
 		)
-	: resContentMatch.test(text)
+		: resContentMatch.test(text)
 		? ['response', 'body'].concat(
-			asNumber(text.match(resContentMatch)[1]) || null,
-			asString(text.match(resContentMatch)[2]) || null
+				asNumber(text.match(resContentMatch)[1]) || null,
+				asString(text.match(resContentMatch)[2]) || null
 		)
-	: reqHeadersMatch.test(text)
+		: reqHeadersMatch.test(text)
 		? ['request', 'headers']
-	: reqContentMatch.test(text)
+		: reqContentMatch.test(text)
 		? ['request', 'body']
-	: null;
+		: null;
 };
 
 /** returns a new api endpoint */
@@ -69,6 +87,7 @@ const createEndpoint = (all, item) => {
 	method = asString(method).toUpperCase();
 	status = asNumber(status) || defaultStatusCode;
 	type = type || defaultContentType;
+	url = hasParamMatch.test(url) ? pathToRegexp(url) : url;
 
 	// return the newly created endpoint
 	return all.add({
@@ -92,6 +111,8 @@ const parseCodeBlock = item => {
 			return parseAsJson(item.code);
 		} else if (yamlMatch.test(item.syntax)) {
 			return parseAsYaml(item.code);
+		} else if (jsMatch.test(item.syntax)) {
+			return parseAsEsm(item.code);
 		}
 	} catch (error) {
 		// do nothing and continue

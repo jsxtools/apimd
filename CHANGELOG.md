@@ -1,5 +1,13 @@
 # Changes to apimd
 
+### 0.4.0 (November 21, 2019)
+
+- Added: Support for looser Yaml and Json code blocks
+- Added: Support for ESM JavaScript code blocks
+- Added: Support for fetch requests within JavaScript code blocks
+- Added: Support for default promise export in JavaScript code blocks
+- Added: Support for parameters in URLs
+
 ### 0.3.2 (November 20, 2019)
 
 - Fixed: Issue where request headers were case sensitive when they should not be

@@ -1,6 +1,6 @@
 {
   "name": "apimd",
-  "version": "0.3.2",
+  "version": "0.4.0",
   "description": "Write APIs in Markdown and use them as mocks.",
   "author": "Jonathan Neal <jonathantneal@hotmail.com>",
   "license": "CC0-1.0",
@@ -24,8 +24,12 @@
     "access": "public"
   },
   "dependencies": {
+    "esm": "^3.2.25",
+    "json-6": "^1.0.4",
     "markdown-ast": "^0.2.1",
-    "parse-yaml": "^0.1.0"
+    "node-fetch": "^2.6.0",
+    "parse-yaml": "^0.1.0",
+    "path-to-regexp": "^6.1.0"
   },
   "devDependencies": {
     "eslint": "^6.6.0",
